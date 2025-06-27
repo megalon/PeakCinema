@@ -39,7 +39,7 @@ public partial class Plugin : BaseUnityPlugin
             {
                 __instance.oldCam.gameObject.SetActive(true);
             }
-        } else if (Input.GetKey(KeyCode.C) && Input.GetKeyDown(KeyCode.M))
+        } else if (Input.GetKey(KeyCode.F3))
         {
             __instance.on = !__instance.on;
         }
