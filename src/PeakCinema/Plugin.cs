@@ -26,33 +26,22 @@ public partial class Plugin : BaseUnityPlugin
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            // Let the player move again
-            InputSystem.actions.Enable();
+            __instance.on = false;
 
-            if (__instance.on)
+            __instance.cam.gameObject.SetActive(false);
+
+            if (__instance.fog != null)
             {
-                __instance.on = false;
-
-                __instance.cam.gameObject.SetActive(false);
-
-                if (__instance.fog != null)
-                {
-                    __instance.fog.gameObject.SetActive(true);
-                }
-
-                if (__instance.oldCam != null)
-                {
-                    __instance.oldCam.gameObject.SetActive(true);
-                }
+                __instance.fog.gameObject.SetActive(true);
             }
 
-            //// Skip rest of Update method
-            return false;
-        }
-
-        if (Input.GetKey(KeyCode.C) && Input.GetKeyDown(KeyCode.M))
+            if (__instance.oldCam != null)
+            {
+                __instance.oldCam.gameObject.SetActive(true);
+            }
+        } else if (Input.GetKey(KeyCode.C) && Input.GetKeyDown(KeyCode.M))
         {
-            __instance.on = true;
+            __instance.on = !__instance.on;
         }
 
         if (__instance.on)
@@ -111,6 +100,10 @@ public partial class Plugin : BaseUnityPlugin
             __instance.cam.transform.Translate(Vector3.forward * __instance.vel.z, Space.Self);
             __instance.cam.transform.Translate(Vector3.up * __instance.vel.y, Space.World);
             __instance.t = true;
+        } else
+        {
+            // Let the player move again
+            InputSystem.actions.Enable();
         }
 
         return false;
