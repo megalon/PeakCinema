@@ -7,8 +7,8 @@ repository = "https://thunderstore.io"
 [package]
 namespace = "megalon2d"
 name = "PeakCinema"
-description = "TODO: Fill in short mod description."
-websiteUrl = "" # TODO: Add a link to your mod repository here (optional)
+description = "Toggle a cinema camera similar to the game trailers"
+websiteUrl = "https://github.com/megalon/PeakCinema"
 containsNsfwContent = false
 
 [package.dependencies]
