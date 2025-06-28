@@ -83,7 +83,7 @@ public partial class Plugin : BaseUnityPlugin
         } else if (Input.GetKeyUp(ModConfig.toggleCinemaCamControlKey.Value))
         {
             // Don't change state if we just reset cam position
-            if (HoldTimer > 0)
+            if (HoldTimer > -1)
             {
                 __instance.on = !__instance.on;
             }
