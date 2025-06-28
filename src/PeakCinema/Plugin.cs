@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.HID;
@@ -18,6 +19,8 @@ public partial class Plugin : BaseUnityPlugin
 
     internal static GameObject HUD = null!;
 
+    internal static bool CameraWasSpawned { get; private set; }
+
     private void Awake()
     {
         Log = Logger;
@@ -27,6 +30,13 @@ public partial class Plugin : BaseUnityPlugin
         Harmony.CreateAndPatchAll(typeof(Plugin));
 
         ModConfig = new PluginModConfig(Config);
+    }
+
+    [HarmonyPatch(typeof(CinemaCamera), "Start")]
+    [HarmonyPostfix]
+    static void CinemaCamera_Start()
+    {
+        CameraWasSpawned = false;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Update")]
@@ -78,7 +88,19 @@ public partial class Plugin : BaseUnityPlugin
             }
             __instance.transform.parent = null;
             __instance.cam.parent = null;
+
+            if (!CameraWasSpawned)
+            {
+                Character localCharacter = Character.AllCharacters.First(c => c.IsLocal);
+
+                if (localCharacter != null)
+                {
+                    __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position + new Vector3(0, 0, 1);
+                }
+            }
+
             __instance.cam.gameObject.SetActive(value: true);
+
             __instance.vel = Vector3.Lerp(__instance.vel, Vector3.zero, 1f * Time.deltaTime);
             __instance.rot = Vector3.Lerp(__instance.rot, Vector3.zero, 2.5f * Time.deltaTime);
 
@@ -122,6 +144,8 @@ public partial class Plugin : BaseUnityPlugin
             __instance.cam.transform.Translate(Vector3.forward * __instance.vel.z, Space.Self);
             __instance.cam.transform.Translate(Vector3.up * __instance.vel.y, Space.World);
             __instance.t = true;
+
+            CameraWasSpawned = true;
         } else
         {
             // Let the player move again
