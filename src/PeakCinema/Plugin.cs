@@ -82,6 +82,12 @@ public partial class Plugin : BaseUnityPlugin
             __instance.vel = Vector3.Lerp(__instance.vel, Vector3.zero, 1f * Time.deltaTime);
             __instance.rot = Vector3.Lerp(__instance.rot, Vector3.zero, 2.5f * Time.deltaTime);
             float num = 0.05f;
+
+            if (Input.GetKey(ModConfig.keyMoveFaster.Value))
+            {
+                num = 0.2f;
+            }
+
             __instance.rot.y += Input.GetAxis("Mouse X") * num * 0.05f;
             __instance.rot.x += Input.GetAxis("Mouse Y") * num * 0.05f;
             if (Input.GetKey(ModConfig.keyMoveRight.Value))
@@ -135,6 +141,7 @@ public partial class Plugin : BaseUnityPlugin
         public readonly ConfigEntry<KeyCode> keyMoveRight;
         public readonly ConfigEntry<KeyCode> keyMoveUp;
         public readonly ConfigEntry<KeyCode> keyMoveDown;
+        public readonly ConfigEntry<KeyCode> keyMoveFaster;
 
         public PluginModConfig(ConfigFile config)
         {
@@ -146,6 +153,7 @@ public partial class Plugin : BaseUnityPlugin
             keyMoveRight = config.Bind<KeyCode>("Keybinds", "Move Right", KeyCode.D, "");
             keyMoveUp = config.Bind<KeyCode>("Keybinds", "Move Up", KeyCode.Space, "");
             keyMoveDown = config.Bind<KeyCode>("Keybinds", "Move Down", KeyCode.LeftControl, "");
+            keyMoveFaster = config.Bind<KeyCode>("Keybinds", "Move Faster", KeyCode.LeftShift, "");
         }
     }
 }
