@@ -4,7 +4,8 @@
 
 - Press `F3` to enable the cinema camera, and fly around
 - Press `F3` again to toggle player movement or camera movement
-- Press `Escape` to return the normal player camera
+- Hold `F3` for 3 seconds to reset the camera position
+- Press `Escape` to exit the cinema camera
 
 Movement:
 - `WASD`: Forward, Left, Back, Right
@@ -13,6 +14,7 @@ Movement:
 - `Shift`: Move faster
 - `Caps Lock`: Toggle camera smoothing
 
-Remap the controls in the config file 
+Remap the controls in the config file
 `PEAK\BepInEx\config\com.github.megalon.peakcinema.cfg`
+
 ![image](https://github.com/user-attachments/assets/a22dd088-2f3d-48ec-9e85-293e6483c74c)
