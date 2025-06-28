@@ -81,38 +81,39 @@ public partial class Plugin : BaseUnityPlugin
             __instance.cam.gameObject.SetActive(value: true);
             __instance.vel = Vector3.Lerp(__instance.vel, Vector3.zero, 1f * Time.deltaTime);
             __instance.rot = Vector3.Lerp(__instance.rot, Vector3.zero, 2.5f * Time.deltaTime);
-            float num = 0.05f;
+
+            float speed = 0.05f;
 
             if (Input.GetKey(ModConfig.keyMoveFaster.Value))
             {
-                num = 0.2f;
+                speed = 0.2f;
             }
 
-            __instance.rot.y += Input.GetAxis("Mouse X") * num * 0.05f;
-            __instance.rot.x += Input.GetAxis("Mouse Y") * num * 0.05f;
+            __instance.rot.y += Input.GetAxis("Mouse X") * speed * 0.05f;
+            __instance.rot.x += Input.GetAxis("Mouse Y") * speed * 0.05f;
             if (Input.GetKey(ModConfig.keyMoveRight.Value))
             {
-                __instance.vel.x += num * Time.deltaTime;
+                __instance.vel.x += speed * Time.deltaTime;
             }
             if (Input.GetKey(ModConfig.keyMoveLeft.Value))
             {
-                __instance.vel.x -= num * Time.deltaTime;
+                __instance.vel.x -= speed * Time.deltaTime;
             }
             if (Input.GetKey(ModConfig.keyMoveForward.Value))
             {
-                __instance.vel.z += num * Time.deltaTime;
+                __instance.vel.z += speed * Time.deltaTime;
             }
             if (Input.GetKey(ModConfig.keyMoveBackward.Value))
             {
-                __instance.vel.z -= num * Time.deltaTime;
+                __instance.vel.z -= speed * Time.deltaTime;
             }
             if (Input.GetKey(ModConfig.keyMoveUp.Value))
             {
-                __instance.vel.y += num * Time.deltaTime;
+                __instance.vel.y += speed * Time.deltaTime;
             }
             if (Input.GetKey(ModConfig.keyMoveDown.Value))
             {
-                __instance.vel.y -= num * Time.deltaTime;
+                __instance.vel.y -= speed * Time.deltaTime;
             }
 
             __instance.cam.transform.Rotate(Vector3.up * __instance.rot.y, Space.World);
