@@ -38,7 +38,7 @@ public partial class Plugin : BaseUnityPlugin
     static void CinemaCamera_Start()
     {
         CameraWasSpawned = false;
-        HoldTimer = 0;
+        HoldTimer = InitHoldTimer;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Update")]
