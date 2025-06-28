@@ -19,6 +19,8 @@ public partial class Plugin : BaseUnityPlugin
 
     internal static bool CameraWasSpawned { get; private set; }
     internal static bool Smoothing { get; private set; } = true;
+    internal static float HoldTimer { get; private set; }
+    internal static float InitHoldTimer { get; private set; } = 3f;
 
     private void Awake()
     {
@@ -36,6 +38,7 @@ public partial class Plugin : BaseUnityPlugin
     static void CinemaCamera_Start()
     {
         CameraWasSpawned = false;
+        HoldTimer = 0;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Update")]
@@ -64,9 +67,28 @@ public partial class Plugin : BaseUnityPlugin
             {
                 __instance.oldCam.gameObject.SetActive(true);
             }
-        } else if (Input.GetKeyDown(ModConfig.toggleCinemaCamControlKey.Value))
+        } else if (Input.GetKey(ModConfig.toggleCinemaCamControlKey.Value))
         {
-            __instance.on = !__instance.on;
+            HoldTimer -= Time.deltaTime;
+
+            if (HoldTimer <= 0)
+            {
+                MoveCameraToPlayerPosition(__instance);
+
+                // Switch to the camera immediately if we were not in cam mode
+                if (!__instance.on) __instance.on = true;
+
+                HoldTimer = -1;
+            }
+        } else if (Input.GetKeyUp(ModConfig.toggleCinemaCamControlKey.Value))
+        {
+            // Don't change state if we just reset cam position
+            if (HoldTimer > 0)
+            {
+                __instance.on = !__instance.on;
+            }
+
+            HoldTimer = InitHoldTimer;
         }
 
         if (__instance.on)
@@ -90,12 +112,7 @@ public partial class Plugin : BaseUnityPlugin
 
             if (!CameraWasSpawned)
             {
-                Character localCharacter = Character.AllCharacters.First(c => c.IsLocal);
-
-                if (localCharacter != null)
-                {
-                    __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position + new Vector3(0, 0, 1);
-                }
+                MoveCameraToPlayerPosition(__instance);
             }
 
             __instance.cam.gameObject.SetActive(value: true);
@@ -111,12 +128,13 @@ public partial class Plugin : BaseUnityPlugin
             {
                 __instance.vel = Vector3.Lerp(__instance.vel, Vector3.zero, 1f * Time.deltaTime);
                 __instance.rot = Vector3.Lerp(__instance.rot, Vector3.zero, 2.5f * Time.deltaTime);
-                
+
                 speed = Input.GetKey(ModConfig.keyMoveFaster.Value) ? 0.2f : 0.05f;
 
                 __instance.rot.y += Input.GetAxis("Mouse X") * speed * 0.05f;
                 __instance.rot.x += Input.GetAxis("Mouse Y") * speed * 0.05f;
-            } else
+            }
+            else
             {
                 __instance.vel = Vector3.zero;
                 __instance.rot = Vector3.zero;
@@ -174,13 +192,24 @@ public partial class Plugin : BaseUnityPlugin
             __instance.t = true;
 
             CameraWasSpawned = true;
-        } else
+        }
+        else
         {
             // Let the player move again
             InputSystem.actions.Enable();
         }
 
         return false;
+    }
+
+    private static void MoveCameraToPlayerPosition(CinemaCamera __instance)
+    {
+        Character localCharacter = Character.AllCharacters.First(c => c.IsLocal);
+
+        if (localCharacter != null)
+        {
+            __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position + new Vector3(0, 0, 1);
+        }
     }
 
     public class PluginModConfig
