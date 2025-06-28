@@ -5,8 +5,6 @@ using HarmonyLib;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.HID;
-using Zorro.Settings;
 
 namespace PeakCinema;
 
@@ -20,6 +18,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static GameObject HUD = null!;
 
     internal static bool CameraWasSpawned { get; private set; }
+    internal static bool Smoothing { get; private set; } = true;
 
     private void Awake()
     {
@@ -101,41 +100,70 @@ public partial class Plugin : BaseUnityPlugin
 
             __instance.cam.gameObject.SetActive(value: true);
 
-            __instance.vel = Vector3.Lerp(__instance.vel, Vector3.zero, 1f * Time.deltaTime);
-            __instance.rot = Vector3.Lerp(__instance.rot, Vector3.zero, 2.5f * Time.deltaTime);
-
-            float speed = 0.05f;
-
-            if (Input.GetKey(ModConfig.keyMoveFaster.Value))
+            if (Input.GetKeyDown(ModConfig.keySmoothToggle.Value))
             {
-                speed = 0.2f;
+                Smoothing = !Smoothing;
             }
 
-            __instance.rot.y += Input.GetAxis("Mouse X") * speed * 0.05f;
-            __instance.rot.x += Input.GetAxis("Mouse Y") * speed * 0.05f;
+            float speed = 0;
+
+            if (Smoothing)
+            {
+                __instance.vel = Vector3.Lerp(__instance.vel, Vector3.zero, 1f * Time.deltaTime);
+                __instance.rot = Vector3.Lerp(__instance.rot, Vector3.zero, 2.5f * Time.deltaTime);
+                
+                speed = Input.GetKey(ModConfig.keyMoveFaster.Value) ? 0.2f : 0.05f;
+
+                __instance.rot.y += Input.GetAxis("Mouse X") * speed * 0.05f;
+                __instance.rot.x += Input.GetAxis("Mouse Y") * speed * 0.05f;
+            } else
+            {
+                __instance.vel = Vector3.zero;
+                __instance.rot = Vector3.zero;
+
+                speed = Input.GetKey(ModConfig.keyMoveFaster.Value) ? 10f : 5f;
+
+                __instance.rot.y += Input.GetAxis("Mouse X") * speed * 0.1f;
+                __instance.rot.x += Input.GetAxis("Mouse Y") * speed * 0.1f;
+            }
+
+            float adjustedSpeed = speed * Time.deltaTime;
+
             if (Input.GetKey(ModConfig.keyMoveRight.Value))
             {
-                __instance.vel.x += speed * Time.deltaTime;
+                __instance.vel.x = Smoothing
+                    ? __instance.vel.x + adjustedSpeed
+                    : adjustedSpeed;
             }
             if (Input.GetKey(ModConfig.keyMoveLeft.Value))
             {
-                __instance.vel.x -= speed * Time.deltaTime;
+                __instance.vel.x = Smoothing
+                    ? __instance.vel.x - adjustedSpeed
+                    : -adjustedSpeed;
             }
             if (Input.GetKey(ModConfig.keyMoveForward.Value))
             {
-                __instance.vel.z += speed * Time.deltaTime;
+                __instance.vel.z = Smoothing
+                    ? __instance.vel.z + adjustedSpeed
+                    : adjustedSpeed;
             }
             if (Input.GetKey(ModConfig.keyMoveBackward.Value))
             {
-                __instance.vel.z -= speed * Time.deltaTime;
+                __instance.vel.z = Smoothing
+                    ? __instance.vel.z - adjustedSpeed
+                    : -adjustedSpeed;
             }
             if (Input.GetKey(ModConfig.keyMoveUp.Value))
             {
-                __instance.vel.y += speed * Time.deltaTime;
+                __instance.vel.y = Smoothing
+                    ? __instance.vel.y + adjustedSpeed
+                    : adjustedSpeed;
             }
             if (Input.GetKey(ModConfig.keyMoveDown.Value))
             {
-                __instance.vel.y -= speed * Time.deltaTime;
+                __instance.vel.y = Smoothing
+                    ? __instance.vel.y - adjustedSpeed
+                    : -adjustedSpeed;
             }
 
             __instance.cam.transform.Rotate(Vector3.up * __instance.rot.y, Space.World);
@@ -167,6 +195,7 @@ public partial class Plugin : BaseUnityPlugin
         public readonly ConfigEntry<KeyCode> keyMoveUp;
         public readonly ConfigEntry<KeyCode> keyMoveDown;
         public readonly ConfigEntry<KeyCode> keyMoveFaster;
+        public readonly ConfigEntry<KeyCode> keySmoothToggle;
 
         public PluginModConfig(ConfigFile config)
         {
@@ -179,6 +208,7 @@ public partial class Plugin : BaseUnityPlugin
             keyMoveUp = config.Bind<KeyCode>("Keybinds", "Move Up", KeyCode.Space, "");
             keyMoveDown = config.Bind<KeyCode>("Keybinds", "Move Down", KeyCode.LeftControl, "");
             keyMoveFaster = config.Bind<KeyCode>("Keybinds", "Move Faster", KeyCode.LeftShift, "");
+            keySmoothToggle = config.Bind<KeyCode>("Keybinds", "Toggle Camera Smoothing", KeyCode.CapsLock, "");
         }
     }
 }
