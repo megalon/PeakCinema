@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0] - 2025.07.02
+
+- Make voice filters use the cinema cam as the distance check start position
+- When first switching to cam, start with cam control instead of player control
+
 ## [0.2.0] - 2025.06.28
 
 ### Added
