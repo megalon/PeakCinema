@@ -22,7 +22,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static bool Smoothing { get; private set; } = true;
     internal static float HoldTimer { get; private set; }
     internal static float InitHoldTimer { get; private set; } = 3f;
-    internal static List<VoiceObscuranceFilter> VoiceFilters { get; private set; } = null;
+    internal static List<VoiceObscuranceFilter> VoiceFilters = new List<VoiceObscuranceFilter>();
 
     private void Awake()
     {
@@ -34,8 +34,6 @@ public partial class Plugin : BaseUnityPlugin
 
         ModConfig = new PluginModConfig(Config);
 
-        VoiceFilters = new List<VoiceObscuranceFilter>();
-
         HoldTimer = InitHoldTimer;
     }
 
@@ -44,14 +42,6 @@ public partial class Plugin : BaseUnityPlugin
     static void VoiceObscuranceFilter_Start(VoiceObscuranceFilter __instance)
     {
         VoiceFilters.Add(__instance);
-    }
-
-    [HarmonyPatch(typeof(VoiceObscuranceFilter), "OnDestroy")]
-    [HarmonyPrefix]
-    static bool VoiceObscuranceFilter_OnDestroy(VoiceObscuranceFilter __instance)
-    {
-        VoiceFilters.Remove(__instance);
-        return true;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Start")]
@@ -115,6 +105,17 @@ public partial class Plugin : BaseUnityPlugin
             if (HoldTimer > -1)
             {
                 __instance.on = !__instance.on;
+            }
+
+            // Remove old filters that no longer exist, for example when a player left
+            for (int i = VoiceFilters.Count - 1; i >= 0; --i)
+            {
+                VoiceObscuranceFilter filter = VoiceFilters[i];
+
+                if (filter == null)
+                {
+                    VoiceFilters.RemoveAt(i);
+                }
             }
 
             // This changes the voice filters so they use the cinema cam as the
