@@ -18,6 +18,8 @@ public partial class Plugin : BaseUnityPlugin
 
     internal static GameObject HUD = null!;
 
+    internal static bool CinemaCamActive { get; private set; }
+    internal static Transform? CamTransform { get; private set; }
     internal static bool CameraWasSpawned { get; private set; }
     internal static bool Smoothing { get; private set; } = true;
     internal static float HoldTimer { get; private set; }
@@ -41,13 +43,20 @@ public partial class Plugin : BaseUnityPlugin
     [HarmonyPostfix]
     static void VoiceObscuranceFilter_Start(VoiceObscuranceFilter __instance)
     {
+        // Fix case where new player joins lobby while camera is active
+        if (CinemaCamActive)
+        {
+            SetVoiceFilterToCinemaCam(__instance);
+        }
+
         VoiceFilters.Add(__instance);
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Start")]
     [HarmonyPostfix]
-    static void CinemaCamera_Start()
+    static void CinemaCamera_Start(CinemaCamera __instance)
     {
+        CamTransform = __instance.cam;
         CameraWasSpawned = false;
         HoldTimer = InitHoldTimer;
     }
@@ -63,6 +72,8 @@ public partial class Plugin : BaseUnityPlugin
 
         if (Input.GetKeyDown(ModConfig.exitCinemaCamKey.Value))
         {
+            CinemaCamActive = false;
+
             __instance.on = false;
 
             HUD?.SetActive(true);
@@ -101,34 +112,18 @@ public partial class Plugin : BaseUnityPlugin
             }
         } else if (Input.GetKeyUp(ModConfig.toggleCinemaCamControlKey.Value))
         {
+            if (!CinemaCamActive)
+            {
+                CinemaCamActive = true;
+
+                HandleVoiceFilters();
+            }
+
             // Don't change state if we just reset cam position
             if (HoldTimer > -1)
             {
                 __instance.on = !__instance.on;
             }
-
-            // Remove old filters that no longer exist, for example when a player left
-            for (int i = VoiceFilters.Count - 1; i >= 0; --i)
-            {
-                VoiceObscuranceFilter filter = VoiceFilters[i];
-
-                if (filter == null)
-                {
-                    VoiceFilters.RemoveAt(i);
-                }
-            }
-
-            // This changes the voice filters so they use the cinema cam as the
-            // start point for distance checking
-            foreach (var v in VoiceFilters)
-            {
-                if (v == null) continue;
-
-                // "head" is where the voice filter linecast start position
-                v.head = __instance.cam;
-            }
-
-            Log.LogInfo($"Adjusted {VoiceFilters.Count} voice filters!");
 
             HoldTimer = InitHoldTimer;
         }
@@ -252,6 +247,42 @@ public partial class Plugin : BaseUnityPlugin
         {
             __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position + new Vector3(0, 0, 1);
         }
+    }
+
+    private static void HandleVoiceFilters()
+    {
+        // Remove old filters that no longer exist, for example when a player has left
+        for (int i = VoiceFilters.Count - 1; i >= 0; --i)
+        {
+            VoiceObscuranceFilter filter = VoiceFilters[i];
+
+            if (filter == null)
+            {
+                VoiceFilters.RemoveAt(i);
+            }
+        }
+
+        foreach (var v in VoiceFilters)
+        {
+            if (v == null) continue;
+
+            SetVoiceFilterToCinemaCam(v);
+        }
+
+        Log.LogInfo($"Adjusted {VoiceFilters.Count} voice filters!");
+    }
+
+    /// <summary>
+    /// This changes the voice filters so they use the cinema cam as the
+    /// start point for distance checking
+    /// </summary>
+    private static void SetVoiceFilterToCinemaCam(VoiceObscuranceFilter filter)
+    {
+        if (CamTransform == null) return;
+        if (filter == null) return;
+
+        // "head" is the voice filter linecast start position
+        filter.head = CamTransform;
     }
 
     public class PluginModConfig
