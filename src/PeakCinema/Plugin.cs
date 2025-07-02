@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -31,6 +31,7 @@ public partial class Plugin : BaseUnityPlugin
         Harmony.CreateAndPatchAll(typeof(Plugin));
 
         ModConfig = new PluginModConfig(Config);
+        HoldTimer = InitHoldTimer;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Start")]
