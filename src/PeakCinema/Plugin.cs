@@ -1,7 +1,8 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,6 +22,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static bool Smoothing { get; private set; } = true;
     internal static float HoldTimer { get; private set; }
     internal static float InitHoldTimer { get; private set; } = 3f;
+    internal static List<VoiceObscuranceFilter> VoiceFilters { get; private set; } = null;
 
     private void Awake()
     {
@@ -31,7 +33,25 @@ public partial class Plugin : BaseUnityPlugin
         Harmony.CreateAndPatchAll(typeof(Plugin));
 
         ModConfig = new PluginModConfig(Config);
+
+        VoiceFilters = new List<VoiceObscuranceFilter>();
+
         HoldTimer = InitHoldTimer;
+    }
+
+    [HarmonyPatch(typeof(VoiceObscuranceFilter), "Start")]
+    [HarmonyPostfix]
+    static void VoiceObscuranceFilter_Start(VoiceObscuranceFilter __instance)
+    {
+        VoiceFilters.Add(__instance);
+    }
+
+    [HarmonyPatch(typeof(VoiceObscuranceFilter), "OnDestroy")]
+    [HarmonyPrefix]
+    static bool VoiceObscuranceFilter_OnDestroy(VoiceObscuranceFilter __instance)
+    {
+        VoiceFilters.Remove(__instance);
+        return true;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Start")]
@@ -68,6 +88,14 @@ public partial class Plugin : BaseUnityPlugin
             {
                 __instance.oldCam.gameObject.SetActive(true);
             }
+            
+            // Reset voice filter distance check start position back to the main camera
+            foreach (var v in VoiceFilters)
+            {
+                if (v == null) continue;
+
+                v.head = MainCamera.instance.transform;
+            }
         } else if (Input.GetKey(ModConfig.toggleCinemaCamControlKey.Value))
         {
             HoldTimer -= Time.deltaTime;
@@ -88,6 +116,18 @@ public partial class Plugin : BaseUnityPlugin
             {
                 __instance.on = !__instance.on;
             }
+
+            // This changes the voice filters so they use the cinema cam as the
+            // start point for distance checking
+            foreach (var v in VoiceFilters)
+            {
+                if (v == null) continue;
+
+                // "head" is where the voice filter linecast start position
+                v.head = __instance.cam;
+            }
+
+            Log.LogInfo($"Adjusted {VoiceFilters.Count} voice filters!");
 
             HoldTimer = InitHoldTimer;
         }
