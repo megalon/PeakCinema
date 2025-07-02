@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>com.github.megalon.peakcinema</AssemblyName>
     <AssemblyTitle>PeakCinema</AssemblyTitle>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
 </Project>
