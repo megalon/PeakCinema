@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1] - 2025.07.13
+
+### Fixed
+
+- Fixed AmbienceAudio breaking and causing endless log spam
+
 ## [0.3.0] - 2025.07.02
 
 - Make voice filters use the cinema cam as the distance check start position
