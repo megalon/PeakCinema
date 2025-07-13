@@ -140,11 +140,11 @@ public partial class Plugin : BaseUnityPlugin
             __instance.ambience.parent = __instance.transform;
             if ((bool)__instance.fog)
             {
-                __instance.fog.gameObject.SetActive(value: false);
+                __instance.fog.gameObject.SetActive(false);
             }
             if ((bool)__instance.oldCam)
             {
-                __instance.oldCam.gameObject.SetActive(value: false);
+                __instance.oldCam.gameObject.SetActive(false);
             }
             __instance.transform.parent = null;
             __instance.cam.parent = null;
@@ -154,7 +154,7 @@ public partial class Plugin : BaseUnityPlugin
                 MoveCameraToPlayerPosition(__instance);
             }
 
-            __instance.cam.gameObject.SetActive(value: true);
+            __instance.cam.gameObject.SetActive(true);
 
             if (Input.GetKeyDown(ModConfig.keySmoothToggle.Value))
             {
