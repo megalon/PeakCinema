@@ -4,6 +4,8 @@ using BepInEx.Logging;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -283,6 +285,50 @@ public partial class Plugin : BaseUnityPlugin
 
         // "head" is the voice filter linecast start position
         filter.head = CamTransform;
+    }
+
+    // We are patching this line
+    //   CharacterData component = base.transform.root.GetComponent<CharacterData>();
+    // And replacing it with this
+    //   CharacterData component = Character.localCharacter.data;
+    [HarmonyPatch(typeof(AmbienceAudio), "FixedUpdate")]
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        var codes = new List<CodeInstruction>(instructions);
+
+        var targetMethod = AccessTools.Method(typeof(Component), "GetComponent")
+                                        .MakeGenericMethod(typeof(CharacterData));
+
+        for (int i = 0; i < codes.Count - 4; i++)
+        {
+            // Look for this
+            //IL_031c: ldarg.0
+            //IL_031d: call instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Component::get_transform()
+            //IL_0322: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_root()
+            //IL_0327: callvirt instance !!0 [UnityEngine.CoreModule]UnityEngine.Component::GetComponent<class CharacterData>()
+            //IL_032c: stloc.0
+            if (
+                codes[i].opcode == OpCodes.Ldarg_0 &&
+                codes[i + 1].Calls(AccessTools.PropertyGetter(typeof(Component), "transform")) &&
+                codes[i + 2].Calls(AccessTools.PropertyGetter(typeof(Transform), "root")) &&
+                codes[i + 3].Calls(targetMethod) &&
+                codes[i + 4].opcode == OpCodes.Stloc_0
+            )
+            {
+                codes.RemoveRange(i, 5);
+
+                codes.InsertRange(i,
+                [
+                    new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(Character), "localCharacter")),
+                    new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "data")),
+                    new CodeInstruction(OpCodes.Stloc_0)
+                ]);
+
+                break;
+            }
+        }
+
+        return codes;
     }
 
     public class PluginModConfig
