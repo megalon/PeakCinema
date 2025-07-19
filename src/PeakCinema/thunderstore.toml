@@ -7,7 +7,7 @@ repository = "https://thunderstore.io"
 [package]
 namespace = "megalon2d"
 name = "PeakCinema"
-description = "Toggle a cinema camera similar to the game trailers"
+description = "Photo mode / Cinema camera like the game trailers"
 websiteUrl = "https://github.com/megalon/PeakCinema"
 containsNsfwContent = false
 
