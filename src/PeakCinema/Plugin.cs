@@ -27,6 +27,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static float HoldTimer { get; private set; }
     internal static float InitHoldTimer { get; private set; } = 3f;
     internal static List<VoiceObscuranceFilter> VoiceFilters = new List<VoiceObscuranceFilter>();
+    internal static Vector3 DeathLocation { get; private set; }
 
     private void Awake()
     {
@@ -61,6 +62,7 @@ public partial class Plugin : BaseUnityPlugin
         CamTransform = __instance.cam;
         CameraWasSpawned = false;
         HoldTimer = InitHoldTimer;
+        DeathLocation = Vector3.zero;
     }
 
     [HarmonyPatch(typeof(CinemaCamera), "Update")]
@@ -247,7 +249,16 @@ public partial class Plugin : BaseUnityPlugin
 
         if (localCharacter != null)
         {
-            __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position + new Vector3(0, 0, 1);
+            if (localCharacter.data.dead)
+            {
+                __instance.cam.transform.position = DeathLocation;
+            }
+            else
+            {
+                __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position;
+            }
+
+            __instance.cam.transform.position += new Vector3(0, 1.5f, -2);
         }
     }
 
@@ -329,6 +340,17 @@ public partial class Plugin : BaseUnityPlugin
         }
 
         return codes;
+    }
+
+    [HarmonyPatch(typeof(Character), "RPCA_Die")]
+    [HarmonyPrefix]
+    static bool Character_RPCA_Die(Character __instance)
+    {
+        if (!__instance.IsLocal) return true;
+
+        DeathLocation = __instance.refs.animationPositionTransform.position;
+
+        return true;
     }
 
     public class PluginModConfig
