@@ -251,12 +251,14 @@ public partial class Plugin : BaseUnityPlugin
         {
             if (localCharacter.data.dead)
             {
-                __instance.cam.transform.position = DeathLocation + new Vector3(0, 0, 1);
+                __instance.cam.transform.position = DeathLocation;
             }
             else
             {
-                __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position + new Vector3(0, 0, 1);
+                __instance.cam.transform.position = localCharacter.refs.animationPositionTransform.position;
             }
+
+            __instance.cam.transform.position += new Vector3(0, 1.5f, -2);
         }
     }
 

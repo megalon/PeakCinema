@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fixed camera spawning 5000m away after player died. Camera now spawns and resets to player's death position.
+- Adjusted camera spawn position so it no longer spawns inside the player model
 
 ## [0.3.1] - 2025.07.13
 
