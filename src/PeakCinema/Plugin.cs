@@ -302,41 +302,42 @@ public partial class Plugin : BaseUnityPlugin
     //   CharacterData component = base.transform.root.GetComponent<CharacterData>();
     // And replacing it with this
     //   CharacterData component = Character.localCharacter.data;
-    [HarmonyPatch(typeof(AmbienceAudio), "FixedUpdate")]
+    [HarmonyPatch(typeof(AmbienceAudio), "Update")]
     static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var codes = new List<CodeInstruction>(instructions);
+        bool patched = false;
 
-        var targetMethod = AccessTools.Method(typeof(Component), "GetComponent")
-                                        .MakeGenericMethod(typeof(CharacterData));
+        var targetFieldCharacter = AccessTools.Field(typeof(AmbienceAudio), "character");
+        var targetFieldData = AccessTools.Field(typeof(Character), "data");
+        var replacementFieldLocalCharacter = AccessTools.Field(typeof(Character), "localCharacter");
+        var replacementFieldData = AccessTools.Field(typeof(Character), "data");
 
-        for (int i = 0; i < codes.Count - 4; i++)
+        for (int i = 0; i < codes.Count - 2; i++)
         {
-            // Look for this
-            //IL_031c: ldarg.0
-            //IL_031d: call instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Component::get_transform()
-            //IL_0322: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_root()
-            //IL_0327: callvirt instance !!0 [UnityEngine.CoreModule]UnityEngine.Component::GetComponent<class CharacterData>()
-            //IL_032c: stloc.0
             if (
                 codes[i].opcode == OpCodes.Ldarg_0 &&
-                codes[i + 1].Calls(AccessTools.PropertyGetter(typeof(Component), "transform")) &&
-                codes[i + 2].Calls(AccessTools.PropertyGetter(typeof(Transform), "root")) &&
-                codes[i + 3].Calls(targetMethod) &&
-                codes[i + 4].opcode == OpCodes.Stloc_0
+                codes[i + 1].opcode == OpCodes.Ldfld && codes[i + 1].operand as FieldInfo == targetFieldCharacter &&
+                codes[i + 2].opcode == OpCodes.Ldfld && codes[i + 2].operand as FieldInfo == targetFieldData
             )
             {
-                codes.RemoveRange(i, 5);
-
+                Log.LogInfo("Patching AmbienceAudio.Update...");
+                codes.RemoveRange(i, 3);
                 codes.InsertRange(i,
                 [
-                    new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(Character), "localCharacter")),
-                    new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "data")),
-                    new CodeInstruction(OpCodes.Stloc_0)
+                    new CodeInstruction(OpCodes.Ldsfld, replacementFieldLocalCharacter),
+                    new CodeInstruction(OpCodes.Ldfld, replacementFieldData),
                 ]);
 
+                Log.LogInfo("Successfully patched AmbienceAudio.Update!");
+                patched = true;
                 break;
             }
+        }
+
+        if (!patched)
+        {
+            Log.LogFatal("Failed to patch AmbienceAudio.Update.");
         }
 
         return codes;
