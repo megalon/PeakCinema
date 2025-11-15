@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0] - 2025.11.14
+
+Thanks to Isotope for this version! https://github.com/IsotopeReal
+
+### Fixed
+
+- Fixed plugin for latest game version
+
+### Added
+
+- Zoom in / out with `Scroll Wheel`
+- Press `Middle Mouse` to reset zoom
+- Press `F4` to toggle player model
+- Added configurable controls for the new controls above
+- Added more settings for movement speed and camera smoothing
+
 ## [0.3.2] - 2025.07.19
 
 ### Fixed
