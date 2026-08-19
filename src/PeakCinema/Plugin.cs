@@ -30,6 +30,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static List<VoiceObscuranceFilter> VoiceFilters = new List<VoiceObscuranceFilter>();
     internal static Vector3 DeathLocation { get; private set; }
     internal static bool PlayerVisibilityToggled { get; private set; } = false;
+    internal static bool InstanceOnLastUpdate { get; private set; } = false;
 
 
     private void Awake()
@@ -85,6 +86,7 @@ public partial class Plugin : BaseUnityPlugin
     [HarmonyPrefix]
     static bool CinemaCameraFix(CinemaCamera __instance)
     {
+        InstanceOnLastUpdate = __instance.on;
         HandlePlayerVisibilityInput();
 
         if (Input.GetKeyDown(ModConfig.exitCinemaCamKey.Value))
@@ -145,20 +147,23 @@ public partial class Plugin : BaseUnityPlugin
 
             ApplyPlayerVisibility(true);
 
-            __instance.ambience.parent = __instance.transform;
-            if ((bool)__instance.fog)
-                __instance.fog.gameObject.SetActive(false);
+            if (!InstanceOnLastUpdate)
+            {
+                if (!CameraWasSpawned)
+                    MoveCameraToPlayerPosition(__instance);
 
-            if ((bool)__instance.oldCam)
-                __instance.oldCam.gameObject.SetActive(false);
+                __instance.cam.gameObject.SetActive(true);
 
-            __instance.transform.parent = null;
-            __instance.cam.parent = null;
+                __instance.ambience.parent = __instance.transform;
+                if ((bool)__instance.fog)
+                    __instance.fog.gameObject.SetActive(false);
 
-            if (!CameraWasSpawned)
-                MoveCameraToPlayerPosition(__instance);
+                if ((bool)__instance.oldCam)
+                    __instance.oldCam.gameObject.SetActive(false);
 
-            __instance.cam.gameObject.SetActive(true);
+                __instance.transform.parent = null;
+                __instance.cam.parent = null;
+            }
 
             // FOV
             if (CinemaCamComponent != null)
@@ -240,7 +245,7 @@ public partial class Plugin : BaseUnityPlugin
             __instance.t = true;
             CameraWasSpawned = true;
         }
-        else
+        else if (InstanceOnLastUpdate && !__instance.on)
         {
             InputSystem.actions.Enable();
             ApplyPlayerVisibility(false);
@@ -264,14 +269,14 @@ public partial class Plugin : BaseUnityPlugin
     private static void ApplyPlayerVisibility(bool cameraActive)
     {
         Character localCharacter = Character.AllCharacters.FirstOrDefault(c => c.IsLocal);
-        CharacterCustomization customization = localCharacter?.refs?.customization;
+        CharacterCustomization customization = localCharacter.refs.customization;
 
         if (customization == null) return;
 
-        bool shouldBeHidden = cameraActive && PlayerVisibilityToggled;
-
-        if (shouldBeHidden)
+        if (cameraActive && PlayerVisibilityToggled)
         {
+            if (customization._allRenderersHidden) return;
+
             customization.HideAllRenderers();
 
             customization.refs.mainRendererShadow.enabled = false;
@@ -282,22 +287,18 @@ public partial class Plugin : BaseUnityPlugin
             customization.refs.medalRenderer.enabled = false;
             customization.refs.thirdEye.GetComponent<Renderer>().enabled = false;
         }
-        else
+        else if (customization._allRenderersHidden)
         {
             customization._allRenderersHidden = false;
             foreach (Renderer r in customization.refs.AllRenderers)
             {
                 // Don't enable the accessory card if we're using the third eye
                 if (r.gameObject.name.Contains("Accesory Card") && customization.refs.thirdEye.activeSelf)
-                {
                     r.enabled = false;
-                } else
-                {
+                else
                     r.enabled = true;
-                }
             }
             customization.refs.hatTransform.gameObject.SetActive(value: true);
-
 
             customization.refs.mainRendererShadow.enabled = true;
             customization.refs.skirtShadow.enabled = true;
