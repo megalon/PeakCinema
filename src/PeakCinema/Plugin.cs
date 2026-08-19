@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -458,9 +458,9 @@ public partial class Plugin : BaseUnityPlugin
         public PluginModConfig(ConfigFile config)
         {
             // General
-            toggleCinemaCamControlKey = config.Bind<KeyCode>("General", "Toggle Cinema Cam Control", KeyCode.F3, "Press to toggle Cinema Cam on/off.");
+            toggleCinemaCamControlKey = config.Bind<KeyCode>("General", "Toggle Cinema Cam Control", KeyCode.F3, "Press to enable cinema cam. Press again to flip between camera control and player control");
             resetCinemaCamKey = config.Bind<KeyCode>("General", "Reset Cinema Cam Position", KeyCode.F3, "Hold to reset camera position to the player position.");
-            initHoldTimer = config.Bind<float>("General", "Reset Hold Time", 1.5f, "Time in seconds to hold the camera reset key before it resets. Default 1.5, but can be 0!");
+            initHoldTimer = config.Bind<float>("General", "Reset Hold Time", 1.5f, "Time in seconds to hold the camera reset key before it resets. Can be set to 0.");
             exitCinemaCamKey = config.Bind<KeyCode>("General", "Exit Cinema Cam", KeyCode.Escape, "Exits the cinema camera and re-enables player input.");
             keyTogglePlayer = config.Bind<KeyCode>("General", "Toggle Player Visibility", KeyCode.F4, "Toggles your character model (body/head/cosmetics) on/off.");
 
