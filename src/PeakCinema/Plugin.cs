@@ -284,7 +284,20 @@ public partial class Plugin : BaseUnityPlugin
         }
         else
         {
-            customization.ShowAllRenderers();
+            customization._allRenderersHidden = false;
+            foreach (Renderer r in customization.refs.AllRenderers)
+            {
+                // Don't enable the accessory card if we're using the third eye
+                if (r.gameObject.name.Contains("Accesory Card") && customization.refs.thirdEye.activeSelf)
+                {
+                    r.enabled = false;
+                } else
+                {
+                    r.enabled = true;
+                }
+            }
+            customization.refs.hatTransform.gameObject.SetActive(value: true);
+
 
             customization.refs.mainRendererShadow.enabled = true;
             customization.refs.skirtShadow.enabled = true;
