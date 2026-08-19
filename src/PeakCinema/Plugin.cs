@@ -30,6 +30,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static Vector3 DeathLocation { get; private set; }
     internal static bool PlayerVisibilityToggled { get; private set; } = false;
     internal static bool InstanceOnLastUpdate { get; private set; } = false;
+    internal static bool GhostHidden { get; private set; } = false;
 
 
     private void Awake()
@@ -280,10 +281,58 @@ public partial class Plugin : BaseUnityPlugin
     private static void ApplyPlayerVisibility(bool cameraActive)
     {
         Character localCharacter = Character.AllCharacters.FirstOrDefault(c => c.IsLocal);
-        CharacterCustomization customization = localCharacter.refs.customization;
 
+        CharacterCustomization customization = localCharacter.refs.customization;
         if (customization == null) return;
 
+        // Ghost
+        if (localCharacter.IsGhost)
+        {
+            if (cameraActive && PlayerVisibilityToggled)
+            {
+                GhostHidden = true;
+
+                foreach (Renderer r in localCharacter.Ghost.PlayerRenderers)
+                {
+                    r.enabled = false;
+                }
+
+                foreach (Renderer r in localCharacter.Ghost.EyeRenderers)
+                {
+                    r.enabled = false;
+                }
+
+                localCharacter.Ghost.mouthRenderer.enabled = false;
+                localCharacter.Ghost.accessoryRenderer.enabled = false;
+                localCharacter.Ghost.thirdEye.gameObject.SetActive(false);
+            } 
+            else if (GhostHidden)
+            {
+                GhostHidden = false;
+
+                foreach (Renderer r in localCharacter.Ghost.PlayerRenderers)
+                {
+                    // Don't enable the accessory card if we're using the third eye
+                    if (r.gameObject.name.Contains("Accesory Card") && customization.refs.thirdEye.activeSelf)
+                        r.enabled = false;
+                    else
+                        r.enabled = true;
+                }
+
+                foreach (Renderer r in localCharacter.Ghost.EyeRenderers)
+                {
+                    r.enabled = true;
+                }
+
+                localCharacter.Ghost.mouthRenderer.enabled = true;
+                localCharacter.Ghost.accessoryRenderer.enabled = true;
+                localCharacter.Ghost.thirdEye.gameObject.SetActive(true);
+            }
+
+            return;
+        }
+
+        // Living player
         if (cameraActive && PlayerVisibilityToggled)
         {
             if (customization._allRenderersHidden) return;

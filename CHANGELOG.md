@@ -5,7 +5,9 @@
 ### Fixed
 
 - Fixed Third Eye cosmetic rendering issues
+- Fixed player model showing on top of skeleton when dead
 - Fixed mirror in the lobby
+- Fixed ghost not hiding when toggling player model
 
 ### Added
 
