@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fixed Third Eye cosmetic rendering issues
+- Fixed mirror in the lobby
 
 ### Added
 

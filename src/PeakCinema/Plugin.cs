@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -423,6 +423,16 @@ public partial class Plugin : BaseUnityPlugin
     {
         if (!__instance.IsLocal) return true;
         DeathLocation = __instance.refs.animationPositionTransform.position;
+
+        return true;
+    }
+
+    [HarmonyPatch(typeof(Mirror), "LateUpdate")]
+    [HarmonyPrefix]
+    static bool MirrorFix(Mirror __instance)
+    {
+        if (__instance.isInitialized && CinemaCamComponent != null)
+            __instance.mainCam = CinemaCamActive ? CinemaCamComponent : Camera.main;
 
         return true;
     }
