@@ -4,7 +4,8 @@
 
 - Press `F3` to enable the cinema camera, and fly around
 - Press `F3` again to toggle player movement or camera movement
-- Hold `F3` for 3 seconds to reset the camera position
+- Hold `F3` for 1.5 seconds to reset the camera position (Hold time is configurable)
+- Press `F4` to hide player when in cinema camera
 - Press `Escape` to exit the cinema camera
 
 Movement:
