@@ -273,10 +273,26 @@ public partial class Plugin : BaseUnityPlugin
         if (shouldBeHidden)
         {
             customization.HideAllRenderers();
+
+            customization.refs.mainRendererShadow.enabled = false;
+            customization.refs.skirtShadow.enabled = false;
+            customization.refs.shortsShadow.enabled = false;
+            customization.refs.headShadow.enabled = false;
+            customization.refs.sashRenderer.enabled = false;
+            customization.refs.medalRenderer.enabled = false;
+            customization.refs.thirdEye.GetComponent<Renderer>().enabled = false;
         }
         else
         {
             customization.ShowAllRenderers();
+
+            customization.refs.mainRendererShadow.enabled = true;
+            customization.refs.skirtShadow.enabled = true;
+            customization.refs.shortsShadow.enabled = true;
+            customization.refs.headShadow.enabled = true;
+            customization.refs.sashRenderer.enabled = true;
+            customization.refs.medalRenderer.enabled = true;
+            customization.refs.thirdEye.GetComponent<Renderer>().enabled = true;
         }
     }
 
