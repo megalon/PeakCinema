@@ -26,10 +26,11 @@ public partial class Plugin : BaseUnityPlugin
     internal static bool CameraWasSpawned { get; private set; }
     internal static bool Smoothing { get; private set; } = true;
     internal static float HoldTimer { get; private set; }
-    internal static float InitHoldTimer { get; private set; } = 1.5f;
     internal static List<VoiceObscuranceFilter> VoiceFilters = new List<VoiceObscuranceFilter>();
     internal static Vector3 DeathLocation { get; private set; }
     internal static bool PlayerVisibilityToggled { get; private set; } = false;
+    internal static bool InstanceOnLastUpdate { get; private set; } = false;
+    internal static bool GhostHidden { get; private set; } = false;
 
 
     private void Awake()
@@ -41,7 +42,7 @@ public partial class Plugin : BaseUnityPlugin
 
         ModConfig = new PluginModConfig(Config);
 
-        HoldTimer = InitHoldTimer;
+        HoldTimer = ModConfig.initHoldTimer.Value;
     }
 
     [HarmonyPatch(typeof(VoiceObscuranceFilter), "Start")]
@@ -72,7 +73,7 @@ public partial class Plugin : BaseUnityPlugin
         }
 
         CameraWasSpawned = false;
-        HoldTimer = InitHoldTimer;
+        HoldTimer = ModConfig.initHoldTimer.Value;
         DeathLocation = Vector3.zero;
 
         if (HUD == null)
@@ -85,6 +86,7 @@ public partial class Plugin : BaseUnityPlugin
     [HarmonyPrefix]
     static bool CinemaCameraFix(CinemaCamera __instance)
     {
+        InstanceOnLastUpdate = __instance.on;
         HandlePlayerVisibilityInput();
 
         if (Input.GetKeyDown(ModConfig.exitCinemaCamKey.Value))
@@ -110,17 +112,29 @@ public partial class Plugin : BaseUnityPlugin
 
             ApplyPlayerVisibility(false);
         }
-        else if (Input.GetKey(ModConfig.toggleCinemaCamControlKey.Value))
+        
+        if (ModConfig.initHoldTimer.Value > 0)
         {
-            HoldTimer -= Time.deltaTime;
-            if (HoldTimer <= 0)
+            if (Input.GetKey(ModConfig.resetCinemaCamKey.Value))
+            {
+                HoldTimer -= Time.deltaTime;
+                if (HoldTimer <= 0)
+                {
+                    MoveCameraToPlayerPosition(__instance);
+                    if (!__instance.on) __instance.on = true;
+                    HoldTimer = -1;
+                }
+            }
+        } else
+        {
+            if (Input.GetKeyUp(ModConfig.resetCinemaCamKey.Value))
             {
                 MoveCameraToPlayerPosition(__instance);
                 if (!__instance.on) __instance.on = true;
-                HoldTimer = -1;
             }
         }
-        else if (Input.GetKeyUp(ModConfig.toggleCinemaCamControlKey.Value))
+
+        if (Input.GetKeyUp(ModConfig.toggleCinemaCamControlKey.Value))
         {
             if (!CinemaCamActive)
             {
@@ -134,7 +148,7 @@ public partial class Plugin : BaseUnityPlugin
                 __instance.on = !__instance.on;
             }
 
-            HoldTimer = InitHoldTimer;
+            HoldTimer = ModConfig.initHoldTimer.Value;
         }
 
         if (__instance.on)
@@ -145,20 +159,23 @@ public partial class Plugin : BaseUnityPlugin
 
             ApplyPlayerVisibility(true);
 
-            __instance.ambience.parent = __instance.transform;
-            if ((bool)__instance.fog)
-                __instance.fog.gameObject.SetActive(false);
+            if (!InstanceOnLastUpdate)
+            {
+                if (!CameraWasSpawned)
+                    MoveCameraToPlayerPosition(__instance);
 
-            if ((bool)__instance.oldCam)
-                __instance.oldCam.gameObject.SetActive(false);
+                __instance.cam.gameObject.SetActive(true);
 
-            __instance.transform.parent = null;
-            __instance.cam.parent = null;
+                __instance.ambience.parent = __instance.transform;
+                if ((bool)__instance.fog)
+                    __instance.fog.gameObject.SetActive(false);
 
-            if (!CameraWasSpawned)
-                MoveCameraToPlayerPosition(__instance);
+                if ((bool)__instance.oldCam)
+                    __instance.oldCam.gameObject.SetActive(false);
 
-            __instance.cam.gameObject.SetActive(true);
+                __instance.transform.parent = null;
+                __instance.cam.parent = null;
+            }
 
             // FOV
             if (CinemaCamComponent != null)
@@ -240,7 +257,7 @@ public partial class Plugin : BaseUnityPlugin
             __instance.t = true;
             CameraWasSpawned = true;
         }
-        else
+        else if (InstanceOnLastUpdate && !__instance.on)
         {
             InputSystem.actions.Enable();
             ApplyPlayerVisibility(false);
@@ -264,19 +281,92 @@ public partial class Plugin : BaseUnityPlugin
     private static void ApplyPlayerVisibility(bool cameraActive)
     {
         Character localCharacter = Character.AllCharacters.FirstOrDefault(c => c.IsLocal);
-        CharacterCustomization customization = localCharacter?.refs?.customization;
 
+        CharacterCustomization customization = localCharacter.refs.customization;
         if (customization == null) return;
 
-        bool shouldBeHidden = cameraActive && PlayerVisibilityToggled;
+        // Ghost
+        if (localCharacter.IsGhost)
+        {
+            if (cameraActive && PlayerVisibilityToggled)
+            {
+                GhostHidden = true;
 
-        if (shouldBeHidden)
-        {
-            customization.HideAllRenderers();
+                foreach (Renderer r in localCharacter.Ghost.PlayerRenderers)
+                {
+                    r.enabled = false;
+                }
+
+                foreach (Renderer r in localCharacter.Ghost.EyeRenderers)
+                {
+                    r.enabled = false;
+                }
+
+                localCharacter.Ghost.mouthRenderer.enabled = false;
+                localCharacter.Ghost.accessoryRenderer.enabled = false;
+                localCharacter.Ghost.thirdEye.gameObject.SetActive(false);
+            } 
+            else if (GhostHidden)
+            {
+                GhostHidden = false;
+
+                foreach (Renderer r in localCharacter.Ghost.PlayerRenderers)
+                {
+                    // Don't enable the accessory card if we're using the third eye
+                    if (r.gameObject.name.Contains("Accesory Card") && customization.refs.thirdEye.activeSelf)
+                        r.enabled = false;
+                    else
+                        r.enabled = true;
+                }
+
+                foreach (Renderer r in localCharacter.Ghost.EyeRenderers)
+                {
+                    r.enabled = true;
+                }
+
+                localCharacter.Ghost.mouthRenderer.enabled = true;
+                localCharacter.Ghost.accessoryRenderer.enabled = true;
+                localCharacter.Ghost.thirdEye.gameObject.SetActive(true);
+            }
+
+            return;
         }
-        else
+
+        // Living player
+        if (cameraActive && PlayerVisibilityToggled)
         {
-            customization.ShowAllRenderers();
+            if (customization._allRenderersHidden) return;
+
+            customization.HideAllRenderers();
+
+            customization.refs.mainRendererShadow.enabled = false;
+            customization.refs.skirtShadow.enabled = false;
+            customization.refs.shortsShadow.enabled = false;
+            customization.refs.headShadow.enabled = false;
+            customization.refs.sashRenderer.enabled = false;
+            customization.refs.medalRenderer.enabled = false;
+            customization.refs.thirdEye.GetComponent<Renderer>().enabled = false;
+        }
+        else if (customization._allRenderersHidden)
+        {
+            customization._allRenderersHidden = false;
+            foreach (Renderer r in customization.refs.AllRenderers)
+            {
+                // Don't enable the accessory card if we're using the third eye
+                if (r.gameObject.name.Contains("Accesory Card") && customization.refs.thirdEye.activeSelf)
+                    r.enabled = false;
+                else
+                    r.enabled = true;
+            }
+            customization.refs.hatTransform.gameObject.SetActive(value: true);
+
+            customization.refs.mainRendererShadow.enabled = true;
+            customization.refs.skirtShadow.enabled = true;
+            customization.refs.shortsShadow.enabled = true;
+            customization.refs.headShadow.enabled = true;
+            customization.refs.sashRenderer.enabled = true;
+            customization.refs.medalRenderer.enabled = true;
+            customization.refs.thirdEye.GetComponent<Renderer>().enabled = true;
         }
     }
 
@@ -386,9 +476,21 @@ public partial class Plugin : BaseUnityPlugin
         return true;
     }
 
+    [HarmonyPatch(typeof(Mirror), "LateUpdate")]
+    [HarmonyPrefix]
+    static bool MirrorFix(Mirror __instance)
+    {
+        if (__instance.isInitialized && CinemaCamComponent != null)
+            __instance.mainCam = CinemaCamActive ? CinemaCamComponent : Camera.main;
+
+        return true;
+    }
+
     public class PluginModConfig
     {
         public readonly ConfigEntry<KeyCode> toggleCinemaCamControlKey;
+        public readonly ConfigEntry<KeyCode> resetCinemaCamKey;
+        public readonly ConfigEntry<float> initHoldTimer;
         public readonly ConfigEntry<KeyCode> exitCinemaCamKey;
         public readonly ConfigEntry<KeyCode> keyTogglePlayer;
 
@@ -415,7 +517,9 @@ public partial class Plugin : BaseUnityPlugin
         public PluginModConfig(ConfigFile config)
         {
             // General
-            toggleCinemaCamControlKey = config.Bind<KeyCode>("General", "Toggle Cinema Cam Control", KeyCode.F3, "Hold F3 to reset camera position to player, press F3 to toggle on/off.");
+            toggleCinemaCamControlKey = config.Bind<KeyCode>("General", "Toggle Cinema Cam Control", KeyCode.F3, "Press to enable cinema cam. Press again to flip between camera control and player control");
+            resetCinemaCamKey = config.Bind<KeyCode>("General", "Reset Cinema Cam Position", KeyCode.F3, "Hold to reset camera position to the player position.");
+            initHoldTimer = config.Bind<float>("General", "Reset Hold Time", 1.5f, "Time in seconds to hold the camera reset key before it resets. Can be set to 0.");
             exitCinemaCamKey = config.Bind<KeyCode>("General", "Exit Cinema Cam", KeyCode.Escape, "Exits the cinema camera and re-enables player input.");
             keyTogglePlayer = config.Bind<KeyCode>("General", "Toggle Player Visibility", KeyCode.F4, "Toggles your character model (body/head/cosmetics) on/off.");
 

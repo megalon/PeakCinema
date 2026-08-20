@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0] - 2026.08.19
+
+### Fixed
+
+- Fixed Third Eye cosmetic rendering issues
+- Fixed player model showing on top of skeleton when dead
+- Fixed mirror in the lobby
+- Fixed ghost not hiding when toggling player model
+
+### Added
+
+- Added config option for camera reset key. Default is `F3`.
+- Added config option for camera reset key hold time in seconds. Default is `1.5`, but it can be `0`.
+
 ## [0.4.0] - 2025.11.14
 
 Thanks to Isotope for this version! https://github.com/IsotopeReal
